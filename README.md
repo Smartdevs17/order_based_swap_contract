@@ -32,9 +32,10 @@ OrderBasedSwap is a contract that allows users to create and fulfill token swap 
 - **getOrder**: Returns the details of a specific order.
 
 ### Usage
-1. Deploy the OrderBasedSwap contract.
-2. Users can create orders by calling the `createOrder` function and specifying the tokens and amounts.
-3. Other users can fulfill orders by calling the `fulfillOrder` function.
+1. Deploy the OrderBasedSwap contract with the addresses of the tokens that will be used for swapping.
+2. Transfer an initial supply of tokens to the OrderBasedSwap contract.
+3. Users can create orders by calling the `createOrder` function and specifying the tokens and amounts.
+4. Other users can fulfill orders by calling the `fulfillOrder` function.
 
 ## Testing
 
@@ -42,7 +43,7 @@ OrderBasedSwap is a contract that allows users to create and fulfill token swap 
 The tests for the contracts are written in TypeScript using the Hardhat framework. The tests cover deployment, order creation, order fulfillment, and edge cases.
 
 ### Test Cases
-- **Deployment**: Ensures that the contracts are deployed properly.
+- **Deployment**: Ensures that the contracts are deployed properly and the initial supply of tokens is transferred to the OrderBasedSwap contract.
 - **Order Creation**: Tests the creation of swap orders.
 - **Order Fulfillment**: Tests the fulfillment of swap orders.
 - **Get Order**: Tests retrieving order details.

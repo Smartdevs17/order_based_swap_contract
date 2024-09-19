@@ -20,23 +20,32 @@ describe("OrderBasedSwap", function () {
     }
 
     async function deployOrderBasedSwap() {
+        const { token: smartDevToken } = await loadFixture(deploySmartDevToken);
+        const { token: cysToken } = await loadFixture(deployCysToken);
         const signers = await ethers.getSigners();
         const [owner, user1, user2] = signers;
     
         const OrderBasedSwap = await ethers.getContractFactory("OrderBasedSwap");
-        const orderBasedSwap = await OrderBasedSwap.deploy();
-        return { orderBasedSwap, owner, user1, user2 };
+        const orderBasedSwap = await OrderBasedSwap.deploy(smartDevToken.getAddress(), cysToken.getAddress());
+
+        // transfer token to the contract
+        await smartDevToken.transfer(await orderBasedSwap.getAddress(), ethers.parseEther("1000.0"));
+        await cysToken.transfer(await orderBasedSwap.getAddress(), ethers.parseEther("1000.0"));
+
+        return { orderBasedSwap, owner, user1, user2, smartDevToken, cysToken };
     }
 
     it("Should deploy properly", async function () {
-        const { orderBasedSwap } = await loadFixture(deployOrderBasedSwap);
+        const { orderBasedSwap, smartDevToken, cysToken } = await loadFixture(deployOrderBasedSwap);
         expect(await orderBasedSwap.getAddress()).to.properAddress;
+        expect(await orderBasedSwap.smartDevToken()).to.equal(await smartDevToken.getAddress());
+        expect(await orderBasedSwap.cysToken()).to.equal(await cysToken.getAddress());
+        expect(await smartDevToken.balanceOf(await orderBasedSwap.getAddress())).to.equal(ethers.parseEther("1000.0"));
+        expect(await cysToken.balanceOf(await orderBasedSwap.getAddress())).to.equal(ethers.parseEther("1000.0"));
     });
 
     it("Should create order properly", async function () {
-        const { orderBasedSwap, user1 } = await loadFixture(deployOrderBasedSwap);
-        const { token: smartDevToken } = await loadFixture(deploySmartDevToken);
-        const { token: cysToken } = await loadFixture(deployCysToken);
+        const { orderBasedSwap, smartDevToken, cysToken, user1 } = await loadFixture(deployOrderBasedSwap);
         const tokenIn = smartDevToken.getAddress();
         const amountIn = ethers.parseEther("100.0");
         const tokenOut = cysToken.getAddress();
@@ -44,54 +53,61 @@ describe("OrderBasedSwap", function () {
     
         // Transfer tokens to user1
         await smartDevToken.transfer(user1.getAddress(), amountIn);
-        await cysToken.transfer(user1.getAddress(), amountOut);
     
         // Approve orderBasedSwap contract to spend user1's smartDevToken and cysToken
         await smartDevToken.connect(user1).approve(orderBasedSwap.getAddress(), amountIn);
-        await cysToken.connect(user1).approve(orderBasedSwap.getAddress(), amountOut);
     
         // Create order
         await orderBasedSwap.connect(user1).createOrder(tokenIn, amountIn, tokenOut, amountOut);
+        const order = await orderBasedSwap.orders(0);
+        expect(order.depositor).to.equal(await user1.getAddress());
+        expect(order.tokenIn).to.equal(await smartDevToken.getAddress());
+        expect(order.amountIn).to.equal(amountIn);
+        expect(order.tokenOut).to.equal(await cysToken.getAddress());
+        expect(order.amountOut).to.equal(amountOut);
+        expect(order.fulfilled).to.be.false;
     });
     
     it("Should fulfill order properly", async function () {
-        const { orderBasedSwap, user1, user2 } = await loadFixture(deployOrderBasedSwap);
-        const { token: smartDevToken } = await loadFixture(deploySmartDevToken);
-        const { token: cysToken } = await loadFixture(deployCysToken);
+        const { orderBasedSwap, smartDevToken, cysToken, user1, user2 } = await loadFixture(deployOrderBasedSwap);
         const tokenIn = smartDevToken.getAddress();
         const amountIn = ethers.parseEther("100.0");
         const tokenOut = cysToken.getAddress();
         const amountOut = ethers.parseEther("200.0");
     
-        // Transfer tokens to user1
+        // Transfer tokens to user1 and user2
         await smartDevToken.transfer(user1.getAddress(), amountIn);
-        await cysToken.transfer(user1.getAddress(), amountOut);
     
-        // Transfer tokens to user2 (this step was missing)
+        // Transfer tokens to user2
         await cysToken.transfer(user2.getAddress(), amountOut);
     
-        // Approve orderBasedSwap contract to spend user1's smartDevToken and user2's cysToken
+        // Approve orderBasedSwap contract to spend user1's smartDevToken
         await smartDevToken.connect(user1).approve(orderBasedSwap.getAddress(), amountIn);
-        await cysToken.connect(user1).approve(orderBasedSwap.getAddress(), amountOut);
-    
+
         // Approve user2 to spend cysToken and smartDevToken (this part is now accurate)
         await cysToken.connect(user2).approve(orderBasedSwap.getAddress(), amountOut);
     
         // Create order by user1
         await orderBasedSwap.connect(user1).createOrder(tokenIn, amountIn, tokenOut, amountOut);
+
+        //Create order by user2
+        await orderBasedSwap.connect(user2).createOrder(tokenOut, amountOut, tokenIn, amountIn);
+
+        //Fulfill order by user1
+        await orderBasedSwap.connect(user1).fulfillOrder(0);
     
         // Fulfill order by user2
-        await orderBasedSwap.connect(user2).fulfillOrder(0);
+        await orderBasedSwap.connect(user2).fulfillOrder(1);
     
         // Verify that the order is fulfilled
-        const order = await orderBasedSwap.orders(0);
-        expect(order.fulfilled).to.be.true;
+        const order1 = await orderBasedSwap.orders(0);  
+        const order2 = await orderBasedSwap.orders(1);
+        expect(order1.fulfilled).to.be.true;
+        expect(order2.fulfilled).to.be.true;
     });
 
     it("Should get order properly", async function () {
-        const { orderBasedSwap, user1 } = await loadFixture(deployOrderBasedSwap);
-        const { token: smartDevToken } = await loadFixture(deploySmartDevToken);
-        const { token: cysToken } = await loadFixture(deployCysToken);
+        const { orderBasedSwap, user1, smartDevToken, cysToken } = await loadFixture(deployOrderBasedSwap);
         const tokenIn = await smartDevToken.getAddress();
         const amountIn = ethers.parseEther("100.0");
         const tokenOut = await cysToken.getAddress();
@@ -99,11 +115,9 @@ describe("OrderBasedSwap", function () {
 
         // Transfer tokens to user1
         await smartDevToken.transfer(user1.getAddress(), amountIn);
-        await cysToken.transfer(user1.getAddress(), amountOut);
 
-        // Approve orderBasedSwap contract to spend user1's smartDevToken and cysToken
+        // Approve orderBasedSwap contract to spend user1's smartDevToken
         await smartDevToken.connect(user1).approve(orderBasedSwap.getAddress(), amountIn);
-        await cysToken.connect(user1).approve(orderBasedSwap.getAddress(), amountOut);
 
         // Create order
         await orderBasedSwap.connect(user1).createOrder(tokenIn, amountIn, tokenOut, amountOut);
@@ -120,9 +134,7 @@ describe("OrderBasedSwap", function () {
     });
 
     it("Should revert if order is already fulfilled", async function () {
-        const { orderBasedSwap, user1 } = await loadFixture(deployOrderBasedSwap);
-        const { token: smartDevToken } = await loadFixture(deploySmartDevToken);
-        const { token: cysToken } = await loadFixture(deployCysToken);
+        const { orderBasedSwap, user1, smartDevToken, cysToken } = await loadFixture(deployOrderBasedSwap);
         const tokenIn = await smartDevToken.getAddress();
         const amountIn = ethers.parseEther("100.0");
         const tokenOut = await cysToken.getAddress();
@@ -130,11 +142,9 @@ describe("OrderBasedSwap", function () {
 
         // Transfer tokens to user1
         await smartDevToken.transfer(user1.getAddress(), amountIn);
-        await cysToken.transfer(user1.getAddress(), amountOut);
 
-        // Approve orderBasedSwap contract to spend user1's smartDevToken and cysToken
+        // Approve orderBasedSwap contract to spend user1's smartDevToken
         await smartDevToken.connect(user1).approve(orderBasedSwap.getAddress(), amountIn);
-        await cysToken.connect(user1).approve(orderBasedSwap.getAddress(), amountOut);
 
         // Create order
         await orderBasedSwap.connect(user1).createOrder(tokenIn, amountIn, tokenOut, amountOut);

@@ -5,6 +5,17 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract OrderBasedSwap {
+
+    address public owner;
+    address public smartDevToken;
+    address public cysToken;
+
+    constructor(address _smartDevToken, address _cysToken) {
+        owner = msg.sender;
+        smartDevToken = _smartDevToken;
+        cysToken = _cysToken;
+    }
+
     struct Order {
         address depositor;
         address tokenIn;
@@ -37,10 +48,10 @@ contract OrderBasedSwap {
     function fulfillOrder(uint256 orderId) external {
         Order storage order = orders[orderId];
         require(!order.fulfilled, "Order already fulfilled");
-        require(IERC20(order.tokenOut).transferFrom(msg.sender, order.depositor, order.amountOut), "Transfer failed");
+        require(IERC20(order.tokenOut).transfer(order.depositor, order.amountOut), "Transfer failed");
 
         order.fulfilled = true;
-        require(IERC20(order.tokenIn).transfer(msg.sender, order.amountIn), "Transfer failed");
+        require(IERC20(order.tokenIn).transfer(address(this), order.amountIn), "Transfer failed");
 
         emit OrderFulfilled(orderId, msg.sender);
     }
