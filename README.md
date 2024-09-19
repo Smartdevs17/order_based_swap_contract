@@ -1,9 +1,9 @@
-# OrderBasedSwap Contracts
+# OrderBasedSwap Contract
 
 ## ERC20 Token
 
 ### Overview
-This contract can work with any ERC20 token. It includes a minting function that can only be called by the owner of the contract.
+This contract can work with any ERC20 token.
 
 ### Contract Details
 - **Symbol**: Customizable
@@ -12,12 +12,10 @@ This contract can work with any ERC20 token. It includes a minting function that
 
 ### Functions
 - **constructor**: Sets the deployer as the owner and mints the initial supply to the owner.
-- **mint**: Allows the owner to mint additional tokens.
 
 ### Usage
 1. Deploy the ERC20 token contract.
 2. The deployer will receive the initial supply of tokens.
-3. The owner can mint additional tokens by calling the `mint` function.
 
 ## OrderBasedSwap
 
