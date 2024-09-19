@@ -55,3 +55,44 @@ The tests for the contracts are written in TypeScript using the Hardhat framewor
 2. Run tests: `npx hardhat test`
 
 ### Example Test
+```typescript
+import { expect } from "chai";
+import { ethers } from "hardhat";
+
+describe("OrderBasedSwap", function () {
+  let orderBasedSwap: OrderBasedSwap;
+
+  beforeEach(async function () {
+    const [deployer] = await ethers.getSigners();
+    orderBasedSwap = await new OrderBasedSwap(deployer.address).deploy();
+  });
+
+  describe("Deployment", function () {
+    it("Should set the right owner", async function () {
+      expect(await orderBasedSwap.owner()).to.equal(deployer.address);
+    });
+  });
+
+  describe("Order Creation", function () {
+    it("Should create an order", async function () {
+      await orderBasedSwap.createOrder("0x123", "0x456", 100, "0x789", 200);
+      const order = await orderBasedSwap.getOrder(0);
+      expect(order.depositor).to.equal(deployer.address);
+      expect(order.tokenIn).to.equal("0x123");
+      expect(order.amountIn).to.equal(100);
+      expect(order.tokenOut).to.equal("0x789");
+      expect(order.amountOut).to.equal(200);
+      expect(order.fulfilled).to.be.false;
+    });
+  });
+
+  describe("Order Fulfillment", function () {
+    it("Should fulfill an order", async function () {
+      await orderBasedSwap.createOrder("0x123", "0x456", 100, "0x789", 200);
+      await orderBasedSwap.fulfillOrder(0, deployer.address);
+      const order = await orderBasedSwap.getOrder(0);
+      expect(order.fulfilled).to.be.true;
+    });
+  });
+});
+```
