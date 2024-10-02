@@ -26,7 +26,7 @@ describe("OrderBasedSwap", function () {
         const [owner, user1, user2] = signers;
     
         const OrderBasedSwap = await ethers.getContractFactory("OrderBasedSwap");
-        const orderBasedSwap = await OrderBasedSwap.deploy(smartDevToken.getAddress(), cysToken.getAddress());
+        const orderBasedSwap = await OrderBasedSwap.deploy();
 
         // transfer token to the contract
         await smartDevToken.transfer(await orderBasedSwap.getAddress(), ethers.parseEther("1000.0"));
@@ -38,8 +38,6 @@ describe("OrderBasedSwap", function () {
     it("Should deploy properly", async function () {
         const { orderBasedSwap, smartDevToken, cysToken } = await loadFixture(deployOrderBasedSwap);
         expect(await orderBasedSwap.getAddress()).to.properAddress;
-        expect(await orderBasedSwap.smartDevToken()).to.equal(await smartDevToken.getAddress());
-        expect(await orderBasedSwap.cysToken()).to.equal(await cysToken.getAddress());
         expect(await smartDevToken.balanceOf(await orderBasedSwap.getAddress())).to.equal(ethers.parseEther("1000.0"));
         expect(await cysToken.balanceOf(await orderBasedSwap.getAddress())).to.equal(ethers.parseEther("1000.0"));
     });

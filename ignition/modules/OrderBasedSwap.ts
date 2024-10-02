@@ -1,13 +1,10 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-async function setupOrderBasedSwapModule() {
-    return buildModule("OrderBasedSwapModule", (m) => {
-      const smartDevToken = m.contract("SmartDevToken");
-      const cysToken = m.contract("CysToken");
-      const orderBasedSwap = m.contract("OrderBasedSwap", [smartDevToken, cysToken]);
+const OrderBasedSwapModule = buildModule("OrderBasedSwapModule", (m) => {
   
-      return { smartDevToken, cysToken, orderBasedSwap };
-    });
-  }
-  
-  export default setupOrderBasedSwapModule;
+  const orderBasedSwap = m.contract("OrderBasedSwap");
+
+  return { orderBasedSwap };
+});
+
+export default OrderBasedSwapModule;

@@ -7,13 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract OrderBasedSwap {
 
     address public owner;
-    address public smartDevToken;
-    address public cysToken;
 
-    constructor(address _smartDevToken, address _cysToken) {
+    constructor() {
         owner = msg.sender;
-        smartDevToken = _smartDevToken;
-        cysToken = _cysToken;
     }
 
     struct Order {
